@@ -1,5 +1,5 @@
 import pygame
-from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED, WHITE, BLACK, BLUE, GREY #新增部分：為了讓字體顏色能被辨識，從 constants 引入 GREY
+from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED, WHITE, BLACK, BLUE, YELLOW, GREY
 from checkers.game import Game
 from minmax.algorithm import minmax
 
@@ -103,7 +103,8 @@ def main():
     
     pygame.quit()
 
-
-
+# --- 新增部分：為了讓字體顏色能被辨識，從 constants 引入 GREY ---
+# 如果你的 constants.py 沒有 GREY，請確保它被定義：GREY = (128,128,128)
+from checkers.constants import GREY
 
 main()
