@@ -22,21 +22,12 @@ class Game:
         self.turn_valid_moves = self.board.get_all_player_moves(self.turn)
 
     def winner(self):
-        # --- 修改部分：整合所有勝利/和局條件 ---
-        
-        # 1. 檢查 board 物件的條件 (吃完棋子 or 50步和局)
         board_winner = self.board.winner()
         if board_winner is not None:
             return board_winner
 
-        # 2. 檢查當前回合的玩家是否無路可走
         if not self.turn_valid_moves:
-            # 如果輪到紅方但沒路走，白方贏
-            if self.turn == RED:
-                return "WHITE"
-            # 如果輪到白方但沒路走，紅方贏
-            else:
-                return "RED"
+            return WHITE if self.turn == RED else RED
         
         return None
 
@@ -64,8 +55,6 @@ class Game:
         if self.selected and (row, col) in self.valid_moves:
             moved_piece = self.selected
             
-            # 這裡不呼叫 board.move，因為吃子後可能不會增加計數器
-            # 在下面根據情況處理
             self.board.board[moved_piece.row][moved_piece.col], self.board.board[row][col] = self.board.board[row][col], self.board.board[moved_piece.row][moved_piece.col]
             moved_piece.move(row, col)
 
@@ -82,7 +71,7 @@ class Game:
                         self.board.red_kings += 1
             
             if skipped:
-                self.board.remove(skipped) # remove 內部會重置計數器
+                self.board.remove(skipped)
                 
                 new_piece = self.board.get_piece(row, col)
                 
@@ -95,7 +84,6 @@ class Game:
                     self.turn_valid_moves = {new_piece: capture_moves}
                     return True
             
-            # --- 修改部分：只有在非吃子移動時才更新計數器 ---
             if not skipped:
                 if promoted_to_king:
                     self.board.moves_since_last_capture_or_king = 0

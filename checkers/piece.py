@@ -1,5 +1,5 @@
 import pygame
-from .constants import RED,WHITE,SQUARE_SIZE,GREY,CROWN
+from checkers.constants import RED,WHITE,SQUARE_SIZE,GREY,CROWN
 
 class Piece:
     PADDING = 15

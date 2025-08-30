@@ -1,99 +1,113 @@
 import pygame
-from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, RED, WHITE, BLACK, GREY
+from checkers.constants import WIDTH, HEIGHT, SQUARE_SIZE, WHITE
 from checkers.game import Game
-from minmax.algorithm import minmax
+from minmax.algorithm import alphabeta
+from ui import UI
 
 FPS = 60
 
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption('Checkers')
+class Application:
+    """
+    應用程式總管類別，負責管理主迴圈、遊戲狀態與各個元件。
+    """
+    def __init__(self):
+        pygame.init()
+        self.win = pygame.display.set_mode((WIDTH, HEIGHT))
+        pygame.display.set_caption('Checkers')
+        self.clock = pygame.time.Clock()
+        self.ui = UI(self.win)
+        self.game = None
+        self.game_mode = None
+        self.ai_depth = 0
+        self.running = True
+        self.state = "main_menu" # 初始狀態為主選單
 
-def draw_text(text, font, color, surface, x, y):
-    textobj = font.render(text, 1, color)
-    textrect = textobj.get_rect()
-    textrect.center = (x, y)
-    surface.blit(textobj, textrect)
+    def _get_row_col_from_mouse(self, pos):
+        """將滑鼠座標轉換為棋盤行列"""
+        x, y = pos
+        return y // SQUARE_SIZE, x // SQUARE_SIZE
 
-def main_menu():
-    run_menu = True
-    font = pygame.font.SysFont(None, 50)
-    
-    pvp_button = pygame.Rect(WIDTH//2 - 150, HEIGHT//2 - 50, 300, 50)
-    pva_button = pygame.Rect(WIDTH//2 - 150, HEIGHT//2 + 20, 300, 50)
+    def run(self):
+        """應用程式主迴圈"""
+        while self.running:
+            self.clock.tick(FPS)
 
-    while run_menu:
-        WIN.fill(BLACK)
-        draw_text('Select Game Mode', font, WHITE, WIN, WIDTH//2, HEIGHT//4)
-
-        pygame.draw.rect(WIN, GREY, pvp_button)
-        pygame.draw.rect(WIN, GREY, pva_button)
-        draw_text('Player vs Player', font, WHITE, WIN, pvp_button.centerx, pvp_button.centery)
-        draw_text('Player vs AI', font, WHITE, WIN, pva_button.centerx, pva_button.centery)
+            if self.state == "main_menu":
+                self._handle_main_menu()
+            elif self.state == "difficulty_menu":
+                self._handle_difficulty_menu()
+            elif self.state == "in_game":
+                self._handle_in_game()
+            elif self.state == "game_over":
+                self._handle_game_over()
         
-        pygame.display.update()
+        pygame.quit()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return None
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos
-                if pvp_button.collidepoint(mouse_pos):
-                    return 'pvp'
-                if pva_button.collidepoint(mouse_pos):
-                    return 'pva'
-    
-    return None
+    def _handle_main_menu(self):
+        """處理主選單邏輯"""
+        choice = self.ui.main_menu()
+        if choice == "quit":
+            self.running = False
+        elif choice == 'pvp':
+            self.game_mode = 'pvp'
+            self.game = Game(self.win, self.game_mode)
+            self.state = "in_game"
+        elif choice == 'pva':
+            self.game_mode = 'pva'
+            self.state = "difficulty_menu"
 
-def get_row_col_from_mouse(pos):
-    x, y = pos
-    row = y // SQUARE_SIZE
-    col = x // SQUARE_SIZE
-    return row, col
+    def _handle_difficulty_menu(self):
+        """處理難度選擇邏輯"""
+        choice = self.ui.difficulty_menu()
+        if choice == "quit":
+            self.running = False
+        elif isinstance(choice, int):
+            self.ai_depth = choice
+            self.game = Game(self.win, self.game_mode)
+            self.state = "in_game"
 
-def main():
-    run = True
-    clock = pygame.time.Clock()    
-    pygame.font.init()
-    game_mode = main_menu()
+    def _handle_in_game(self):
+        """處理遊戲進行中的邏輯"""
+        # 1. 檢查遊戲是否結束
+        winner = self.game.winner()
+        if winner is not None:
+            self.state = "game_over"
+            return
 
-    if game_mode is None:
-        run = False
-    else:
-        game = Game(WIN, game_mode)
-
-    while run:
-        clock.tick(FPS)
-
-        # --- 修改部分：處理遊戲結束後的延遲 ---
-        game_result = game.winner()
-        if game_result is not None:
-            if game_result == "DRAW":
-                print("The game is a DRAW.")
-            else:
-                print(f"{game_result} wins!")
-            pygame.time.delay(3000) # 遊戲結束後停留3秒
-            run = False
-            continue # 結束此次迴圈，避免繼續執行
-
-        if game_mode == 'pva' and game.turn == WHITE:
-            pygame.time.delay(500)
-            value, new_board = minmax(game.get_board(), 3, WHITE, game)
+        # 2. 處理 AI 回合
+        if self.game_mode == 'pva' and self.game.turn == WHITE:
+            value, new_board = alphabeta(self.game.get_board(), self.ai_depth, float('-inf'), float('inf'), True, self.game)
             if new_board:
-                 game.ai_move(new_board)
+                 self.game.ai_move(new_board)
 
+        # 3. 處理玩家事件
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                run = False
+                self.running = False
             
             if event.type == pygame.MOUSEBUTTONDOWN:
-                if not (game_mode == 'pva' and game.turn == WHITE):
+                # 確保不是 AI 回合才處理點擊
+                if not (self.game_mode == 'pva' and self.game.turn == WHITE):
                     pos = pygame.mouse.get_pos()
-                    row, col = get_row_col_from_mouse(pos)
-                    game.select(row, col)
+                    row, col = self._get_row_col_from_mouse(pos)
+                    self.game.select(row, col)
+        
+        # 4. 更新畫面
+        self.game.update()
 
-        if 'game' in locals():
-            game.update()
-    
-    pygame.quit()
+    def _handle_game_over(self):
+        """處理遊戲結束邏輯"""
+        winner = self.game.winner()
+        choice = self.ui.game_over_screen(winner)
+        if choice == "quit":
+            self.running = False
+        elif choice == "restart":
+            self.state = "main_menu" # 回到主選單
 
-main()
+def main():
+    """程式主入口"""
+    app = Application()
+    app.run()
+
+if __name__ == '__main__':
+    main()
