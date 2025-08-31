@@ -1,5 +1,6 @@
 import pygame
-from checkers.constants import BLACK, ROWS, RED, SQUARE_SIZE, COLS, WHITE
+from checkers.constants import (BOARD_COLOR_DARK, BOARD_COLOR_LIGHT, ROWS, COLS, SQUARE_SIZE, 
+                                PIECE_COLOR_A, PIECE_COLOR_B)
 from checkers.piece import Piece
 
 class Board:
@@ -7,19 +8,14 @@ class Board:
         self.board = []
         self.red_left = self.white_left = 12
         self.red_kings = self.white_kings = 0
-        # --- 新增變數：用於和局判定的計數器 ---
         self.moves_since_last_capture_or_king = 0
         self.create_board()
     
     def draw_squares(self, win):
-        win.fill(BLACK)
+        win.fill(BOARD_COLOR_DARK)
         for row in range(ROWS):
             for col in range(row % 2, COLS, 2):
-                pygame.draw.rect(win, RED, (row*SQUARE_SIZE, col *SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
-
-
-    def evaluate(self):
-        return self.white_left - self.red_left + (self.white_kings * 0.5 - self.red_kings * 0.5)
+                pygame.draw.rect(win, BOARD_COLOR_LIGHT, (row*SQUARE_SIZE, col *SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
     def get_all_pieces(self, color):
         pieces = []
@@ -30,27 +26,10 @@ class Board:
         return pieces
 
     def move(self, piece, row, col):
-        self.board[piece.row][piece.col], self.board[row][col] = self.board[row][col], self.board[piece.row][piece.col]
-        piece.move(row, col)
-
-        promoted_to_king = False
-        if row == ROWS - 1 or row == 0:
-            if not piece.king:
-                piece.make_king()
-                promoted_to_king = True
-                if piece.color == WHITE:
-                    self.white_kings += 1
-                else:
-                    self.red_kings += 1
-        
-        # --- 修改部分：更新和局計數器 ---
-        # 如果這次移動有升王，計數器歸零
-        if promoted_to_king:
-            self.moves_since_last_capture_or_king = 0
-        else:
-            # 否則，計數器加一
-            self.moves_since_last_capture_or_king += 1
-
+        # This method is now only called internally by Game._move, which handles the main logic
+        # self.board[piece.row][piece.col], self.board[row][col] = self.board[row][col], self.board[piece.row][piece.col]
+        # piece.move(row, col)
+        pass # The logic is now in Game._move to handle move_event return
 
     def get_piece(self, row, col):
         return self.board[row][col]
@@ -61,41 +40,40 @@ class Board:
             for col in range(COLS):
                 if col % 2 == ((row +  1) % 2):
                     if row < 3:
-                        self.board[row].append(Piece(row, col, WHITE))
+                        self.board[row].append(Piece(row, col, PIECE_COLOR_B))
                     elif row > 4:
-                        self.board[row].append(Piece(row, col, RED))
+                        self.board[row].append(Piece(row, col, PIECE_COLOR_A))
                     else:
                         self.board[row].append(0)
                 else:
                     self.board[row].append(0)
         
-    def draw(self, win):
+    def draw(self, win, selected_piece=None):
         self.draw_squares(win)
         for row in range(ROWS):
             for col in range(COLS):
                 piece = self.board[row][col]
                 if piece != 0:
-                    piece.draw(win)
+                    is_selected = (piece == selected_piece)
+                    piece.draw(win, is_selected)
 
     def remove(self, pieces):
         for piece in pieces:
-            self.board[piece.row][piece.col] = 0
-            if piece != 0:
-                if piece.color == RED:
+            if self.board[piece.row][piece.col] != 0:
+                if piece.color == PIECE_COLOR_A:
                     self.red_left -= 1
                 else:
                     self.white_left -= 1
+                self.board[piece.row][piece.col] = 0
         
-        # --- 修改部分：發生吃子，計數器歸零 ---
         self.moves_since_last_capture_or_king = 0
     
     def winner(self):
         if self.red_left <= 0:
-            return "WHITE"
+            return PIECE_COLOR_B
         elif self.white_left <= 0:
-            return "RED"
+            return PIECE_COLOR_A
         
-        # --- 新增規則：和局判定 ---
         if self.moves_since_last_capture_or_king >= 50:
             return "DRAW"
         
@@ -107,10 +85,10 @@ class Board:
         right = piece.col + 1
         row = piece.row
 
-        if piece.color == RED or piece.king:
+        if piece.color == PIECE_COLOR_A or piece.king:
             moves.update(self._traverse_left(row -1, max(row-3, -1), -1, piece.color, left))
             moves.update(self._traverse_right(row -1, max(row-3, -1), -1, piece.color, right))
-        if piece.color == WHITE or piece.king:
+        if piece.color == PIECE_COLOR_B or piece.king:
             moves.update(self._traverse_left(row +1, min(row+3, ROWS), 1, piece.color, left))
             moves.update(self._traverse_right(row +1, min(row+3, ROWS), 1, piece.color, right))
     

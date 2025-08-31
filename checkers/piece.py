@@ -1,5 +1,6 @@
 import pygame
-from checkers.constants import RED,WHITE,SQUARE_SIZE,GREY,CROWN
+from checkers.constants import (SQUARE_SIZE, CROWN, 
+                                SELECTED_PIECE_COLOR)
 
 class Piece:
     PADDING = 15
@@ -20,10 +21,17 @@ class Piece:
     def make_king(self):
         self.king = True
 
-    def draw(self,win):
+    def draw(self, win, is_selected=False):
         radius = SQUARE_SIZE//2 - self.PADDING
-        pygame.draw.circle(win, GREY,(self.x, self.y),radius+ self.OUTLINE)
-        pygame.draw.circle(win, self.color,(self.x, self.y),radius )
+        
+        outline_color = tuple(max(0, c-40) for c in self.color)
+        pygame.draw.circle(win, outline_color, (self.x, self.y), radius + self.OUTLINE)
+        
+        pygame.draw.circle(win, self.color, (self.x, self.y), radius)
+        
+        if is_selected:
+            pygame.draw.circle(win, SELECTED_PIECE_COLOR, (self.x, self.y), radius + self.OUTLINE, 3)
+
         if self.king:
             win.blit(CROWN,(self.x - CROWN.get_width() // 2, self.y - CROWN.get_height() // 2))
 

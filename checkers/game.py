@@ -1,5 +1,6 @@
 import pygame
-from checkers.constants import RED, WHITE, BLUE, SQUARE_SIZE, YELLOW ,ROWS, COLS
+from checkers.constants import (PIECE_COLOR_A, PIECE_COLOR_B, VALID_MOVE_COLOR, SQUARE_SIZE, FORCED_CAPTURE_COLOR, 
+                                ROWS, COLS)
 from checkers.board import Board
 
 class Game:
@@ -9,15 +10,14 @@ class Game:
         self._init()
     
     def update(self):
-        self.board.draw(self.win)
-        self._draw_forced_capture_indicators()
+        self.board.draw(self.win, self.selected)
         self.draw_valid_moves(self.valid_moves)
-        pygame.display.update()
+        self._draw_forced_capture_indicators()
 
     def _init(self):
         self.selected = None
         self.board = Board()
-        self.turn = RED
+        self.turn = PIECE_COLOR_A
         self.valid_moves = {}
         self.turn_valid_moves = self.board.get_all_player_moves(self.turn)
 
@@ -27,7 +27,7 @@ class Game:
             return board_winner
 
         if not self.turn_valid_moves:
-            return WHITE if self.turn == RED else RED
+            return PIECE_COLOR_B if self.turn == PIECE_COLOR_A else PIECE_COLOR_A
         
         return None
 
@@ -41,15 +41,16 @@ class Game:
                 self.selected = None
                 self.valid_moves = {}
                 self.select(row, col)
+            return result
         
         piece = self.board.get_piece(row, col)
         
         if piece != 0 and piece in self.turn_valid_moves:
             self.selected = piece
             self.valid_moves = self.turn_valid_moves[piece]
-            return True
+            return "selected"
             
-        return False
+        return None
 
     def _move(self, row, col):
         if self.selected and (row, col) in self.valid_moves:
@@ -65,16 +66,17 @@ class Game:
                 if not moved_piece.king:
                     moved_piece.make_king()
                     promoted_to_king = True
-                    if moved_piece.color == WHITE:
+                    if moved_piece.color == PIECE_COLOR_B:
                         self.board.white_kings += 1
                     else:
                         self.board.red_kings += 1
             
+            move_event = None
             if skipped:
                 self.board.remove(skipped)
+                move_event = "capture"
                 
                 new_piece = self.board.get_piece(row, col)
-                
                 new_moves = self.board.get_valid_moves(new_piece)
                 capture_moves = {m: s for m, s in new_moves.items() if s}
 
@@ -82,26 +84,31 @@ class Game:
                     self.selected = new_piece
                     self.valid_moves = capture_moves
                     self.turn_valid_moves = {new_piece: capture_moves}
-                    return True
+                    return move_event
             
             if not skipped:
                 if promoted_to_king:
                     self.board.moves_since_last_capture_or_king = 0
+                    move_event = "king"
                 else:
                     self.board.moves_since_last_capture_or_king += 1
+                    move_event = "move"
                 
             self.change_turn()
-            return True
+            return move_event
 
-        return False
+        return None
 
     def draw_valid_moves(self, moves):
-        for move in moves:
-            row, col = move
-            pygame.draw.circle(self.win, BLUE, (col * SQUARE_SIZE + SQUARE_SIZE//2, row * SQUARE_SIZE + SQUARE_SIZE//2), 15)
+        if moves:
+            s = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
+            s.fill(VALID_MOVE_COLOR)
+            for move in moves:
+                row, col = move
+                self.win.blit(s, (col * SQUARE_SIZE, row * SQUARE_SIZE))
 
     def _draw_forced_capture_indicators(self):
-        if self.game_mode == 'pva' and self.turn == WHITE:
+        if self.game_mode == 'pva' and self.turn == PIECE_COLOR_B:
             return
 
         pieces_with_moves = self.turn_valid_moves.keys()
@@ -118,15 +125,15 @@ class Game:
         if is_capture_turn:
             for piece in pieces_with_moves:
                 radius = SQUARE_SIZE//2 - 5
-                pygame.draw.circle(self.win, YELLOW, (piece.x, piece.y), radius, 3)
+                pygame.draw.circle(self.win, FORCED_CAPTURE_COLOR, (piece.x, piece.y), radius, 3)
 
     def change_turn(self):
         self.selected = None
         self.valid_moves = {}
-        if self.turn == RED:
-            self.turn = WHITE
+        if self.turn == PIECE_COLOR_A:
+            self.turn = PIECE_COLOR_B
         else:
-            self.turn = RED
+            self.turn = PIECE_COLOR_A
         
         self.turn_valid_moves = self.board.get_all_player_moves(self.turn)
 
