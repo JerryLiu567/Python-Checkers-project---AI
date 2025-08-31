@@ -60,8 +60,8 @@ class UI:
         pygame.draw.rect(self.win, GREY, easy_button)
         pygame.draw.rect(self.win, GREY, medium_button)
         pygame.draw.rect(self.win, GREY, hard_button)
-        self._draw_text('Easy (Depth 2)', WHITE, easy_button.centerx, easy_button.centery)
-        self._draw_text('Medium (Depth 4)', WHITE, medium_button.centerx, medium_button.centery)
+        self._draw_text('Easy (Depth 1)', WHITE, easy_button.centerx, easy_button.centery)
+        self._draw_text('Medium (Depth 3)', WHITE, medium_button.centerx, medium_button.centery)
         self._draw_text('Hard (Depth 5)', WHITE, hard_button.centerx, hard_button.centery)
         
         pygame.display.update()
@@ -72,9 +72,9 @@ class UI:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = event.pos
                 if easy_button.collidepoint(mouse_pos):
-                    return 2
+                    return 1
                 if medium_button.collidepoint(mouse_pos):
-                    return 4
+                    return 3
                 if hard_button.collidepoint(mouse_pos):
                     return 5
         return None
