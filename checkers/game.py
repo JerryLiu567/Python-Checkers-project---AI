@@ -52,15 +52,18 @@ class Game:
             
         return None
 
+    # (在 Game class 中)
     def _move(self, row, col):
         if self.selected and (row, col) in self.valid_moves:
             moved_piece = self.selected
             
+            # 1. 執行實體移動
             self.board.board[moved_piece.row][moved_piece.col], self.board.board[row][col] = self.board.board[row][col], self.board.board[moved_piece.row][moved_piece.col]
             moved_piece.move(row, col)
 
             skipped = self.valid_moves.get((row, col))
             
+            # 2. 檢查是否升王
             promoted_to_king = False
             if row == ROWS - 1 or row == 0:
                 if not moved_piece.king:
@@ -71,33 +74,39 @@ class Game:
                     else:
                         self.board.red_kings += 1
             
+            # --- 核心修改：依照優先級決定事件類型 ---
             move_event = None
+            if promoted_to_king:
+                move_event = "king"      # 最高優先級
+            elif skipped:
+                move_event = "capture"   # 第二優先級
+            else:
+                move_event = "move"      # 最低優先級
+
+            # 3. 根據事件更新和局計數器
+            if move_event in ["capture", "king"]:
+                self.board.moves_since_last_capture_or_king = 0
+            else:
+                self.board.moves_since_last_capture_or_king += 1
+
+            # 4. 處理吃子和連吃邏輯
             if skipped:
                 self.board.remove(skipped)
-                move_event = "capture"
-                
                 new_piece = self.board.get_piece(row, col)
                 new_moves = self.board.get_valid_moves(new_piece)
                 capture_moves = {m: s for m, s in new_moves.items() if s}
 
-                if capture_moves:
+                if capture_moves: # 如果可以連吃
                     self.selected = new_piece
                     self.valid_moves = capture_moves
                     self.turn_valid_moves = {new_piece: capture_moves}
-                    return move_event
+                    return move_event # 回傳本次事件，但不交換回合
             
-            if not skipped:
-                if promoted_to_king:
-                    self.board.moves_since_last_capture_or_king = 0
-                    move_event = "king"
-                else:
-                    self.board.moves_since_last_capture_or_king += 1
-                    move_event = "move"
-                
+            # 5. 如果不能連吃或不是吃子，正常交換回合
             self.change_turn()
             return move_event
 
-        return None
+        return None # 無效移動
 
     def draw_valid_moves(self, moves):
         if moves:

@@ -25,11 +25,28 @@ class Board:
                     pieces.append(piece)
         return pieces
 
+    # (在 Board class 中)
     def move(self, piece, row, col):
-        # This method is now only called internally by Game._move, which handles the main logic
-        # self.board[piece.row][piece.col], self.board[row][col] = self.board[row][col], self.board[piece.row][piece.col]
-        # piece.move(row, col)
-        pass # The logic is now in Game._move to handle move_event return
+        self.board[piece.row][piece.col], self.board[row][col] = self.board[row][col], self.board[piece.row][piece.col]
+        piece.move(row, col)
+
+        promoted_to_king = False
+        if row == ROWS - 1 or row == 0:
+            if not piece.king:
+                piece.make_king()
+                promoted_to_king = True
+                # --- 核心修改：使用新的顏色常數來更新國王計數 ---
+                if piece.color == PIECE_COLOR_B: # 原本這裡錯誤地寫成了 WHITE
+                    self.white_kings += 1
+                else:
+                    self.red_kings += 1
+        
+        # 和局計數器的邏輯現在由 game.py 的 _move 統一處理
+        # 為避免重複計算，這裡不再需要更新計數器
+        # if promoted_to_king:
+        #     self.moves_since_last_capture_or_king = 0
+        # else:
+        #     self.moves_since_last_capture_or_king += 1
 
     def get_piece(self, row, col):
         return self.board[row][col]

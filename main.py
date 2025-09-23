@@ -89,6 +89,7 @@ class Application:
             self.game = Game(self.win, self.game_mode)
             self.state = "in_game"
 
+    # (在 Application class 中)
     def _handle_in_game(self):
         """處理遊戲進行中的邏輯"""
         winner = self.game.winner()
@@ -96,7 +97,11 @@ class Application:
             self.state = "game_over"
             return
 
+        # 處理 AI 回合
         if self.game_mode == 'pva' and self.game.turn == PIECE_COLOR_B:
+            # --- 新增：在 AI 計算前延遲 500 毫秒 (0.5秒) ---
+            pygame.time.delay(500) 
+
             old_piece_count = self.game.board.red_left + self.game.board.white_left
             value, new_board = alphabeta(self.game.get_board(), self.ai_depth, float('-inf'), float('inf'), True, self.game)
             if new_board:
@@ -107,6 +112,7 @@ class Application:
                  else:
                      self._play_sound("move")
 
+        # 處理玩家事件
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
