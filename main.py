@@ -99,8 +99,8 @@ class Application:
 
         # 處理 AI 回合
         if self.game_mode == 'pva' and self.game.turn == PIECE_COLOR_B:
-            # --- 新增：在 AI 計算前延遲 500 毫秒 (0.5秒) ---
-            pygame.time.delay(500) 
+            # --- 新增：在 AI 計算前延遲 1000 毫秒 (1秒) ---
+            pygame.time.delay(1000) 
 
             old_piece_count = self.game.board.red_left + self.game.board.white_left
             value, new_board = alphabeta(self.game.get_board(), self.ai_depth, float('-inf'), float('inf'), True, self.game)
