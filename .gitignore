@@ -1,0 +1,22 @@
+# Python 虛擬環境
+checkers_env/
+venv/
+env/
+
+# Python 編譯檔案
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 發布檔案
+dist/
+build/
+*.spec
+
+# IDE 設定
+.vscode/
+.idea/
+
+# 系統檔案
+.DS_Store
+Thumbs.db
